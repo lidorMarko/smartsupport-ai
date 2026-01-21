@@ -2,14 +2,27 @@ import type { Message } from '../types/chat';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+export interface ToolCall {
+  tool: string;
+  arguments: Record<string, unknown>;
+  result: Record<string, unknown>;
+}
+
 interface BackendChatResponse {
   message: string;
   sources?: string[];
+  tool_calls?: ToolCall[];
+}
+
+export interface ChatResult {
+  message: string;
+  toolCalls?: ToolCall[];
 }
 
 interface ChatOptions {
   useRag?: boolean;
   promptKey?: string;
+  useTools?: boolean;
 }
 
 export interface PromptOption {
@@ -21,8 +34,8 @@ export interface PromptOption {
 export async function sendChatMessage(
   messages: Message[],
   options: ChatOptions = {}
-): Promise<string> {
-  const { useRag = true, promptKey = 'default' } = options;
+): Promise<ChatResult> {
+  const { useRag = true, promptKey = 'default', useTools = true } = options;
 
   const response = await fetch(`${API_BASE_URL}/api/chat`, {
     method: 'POST',
@@ -36,6 +49,7 @@ export async function sendChatMessage(
       })),
       use_rag: useRag,
       prompt_key: promptKey,
+      use_tools: useTools,
     }),
   });
 
@@ -47,12 +61,15 @@ export async function sendChatMessage(
   const data: BackendChatResponse = await response.json();
 
   // Append sources if available
-  let result = data.message;
+  let message = data.message;
   if (data.sources && data.sources.length > 0) {
-    result += `\n\n📚 *Sources: ${data.sources.join(', ')}*`;
+    message += `\n\n📚 *Sources: ${data.sources.join(', ')}*`;
   }
 
-  return result;
+  return {
+    message,
+    toolCalls: data.tool_calls,
+  };
 }
 
 // Get available system prompts

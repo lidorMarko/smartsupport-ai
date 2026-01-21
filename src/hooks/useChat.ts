@@ -38,7 +38,7 @@ export function useChat(options: UseChatOptions = {}) {
     setError(null);
 
     try {
-      const response = await sendChatMessage(
+      const result = await sendChatMessage(
         [...messages, userMessage],
         { useRag, promptKey }
       );
@@ -46,8 +46,9 @@ export function useChat(options: UseChatOptions = {}) {
       const assistantMessage: Message = {
         id: generateId(),
         role: 'assistant',
-        content: response,
-        timestamp: new Date()
+        content: result.message,
+        timestamp: new Date(),
+        toolCalls: result.toolCalls
       };
 
       setMessages((prev) => [...prev, assistantMessage]);

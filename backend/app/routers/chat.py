@@ -32,6 +32,9 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
     If use_rag is True, the system will search for relevant context
     from the document store before generating a response.
+
+    If use_tools is True, the agent can use tools (function calling)
+    to perform actions like scheduling technicians or sending emails.
     """
     try:
         openai_service = get_openai_service()
@@ -41,6 +44,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         # Get the selected system prompt
         system_prompt = get_prompt_by_key(request.prompt_key)
         print(f"[PROMPT] Using: {request.prompt_key}")
+        print(f"[TOOLS] Enabled: {request.use_tools}")
 
         # Get RAG context if enabled
         if request.use_rag:
@@ -60,17 +64,30 @@ async def chat(request: ChatRequest) -> ChatResponse:
                 # RAG failed, continue without context
                 print(f"[RAG] Error (continuing without context): {e}")
 
-        # Get AI response with selected prompt
-        response = await openai_service.chat(
-            messages=request.messages,
-            system_prompt=system_prompt,
-            context=context if context else None,
-        )
-
-        return ChatResponse(
-            message=response,
-            sources=sources if sources else None,
-        )
+        # Get AI response - with or without tools
+        if request.use_tools:
+            # Use agent with function calling
+            result = await openai_service.chat_with_tools(
+                messages=request.messages,
+                system_prompt=system_prompt,
+                context=context if context else None,
+            )
+            return ChatResponse(
+                message=result["message"],
+                sources=sources if sources else None,
+                tool_calls=result["tool_calls"] if result["tool_calls"] else None,
+            )
+        else:
+            # Simple chat without tools
+            response = await openai_service.chat(
+                messages=request.messages,
+                system_prompt=system_prompt,
+                context=context if context else None,
+            )
+            return ChatResponse(
+                message=response,
+                sources=sources if sources else None,
+            )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
