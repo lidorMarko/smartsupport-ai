@@ -13,6 +13,7 @@ export function useChat(options: UseChatOptions = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useRag, setUseRag] = useState(true);
+  const [useTools, setUseTools] = useState(true);
   const [promptKey, setPromptKey] = useState('default');
   const [availablePrompts, setAvailablePrompts] = useState<PromptOption[]>([]);
 
@@ -40,7 +41,7 @@ export function useChat(options: UseChatOptions = {}) {
     try {
       const result = await sendChatMessage(
         [...messages, userMessage],
-        { useRag, promptKey }
+        { useRag, promptKey, useTools }
       );
 
       const assistantMessage: Message = {
@@ -59,7 +60,7 @@ export function useChat(options: UseChatOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, useRag, promptKey, options]);
+  }, [messages, useRag, useTools, promptKey, options]);
 
   const clearChat = useCallback(() => {
     setMessages([]);
@@ -86,6 +87,8 @@ export function useChat(options: UseChatOptions = {}) {
     error,
     useRag,
     setUseRag,
+    useTools,
+    setUseTools,
     promptKey,
     setPromptKey,
     availablePrompts,

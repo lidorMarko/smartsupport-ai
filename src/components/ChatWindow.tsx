@@ -13,6 +13,8 @@ interface ChatWindowProps {
   onClearChat?: () => void;
   useRag: boolean;
   onToggleRag: (enabled: boolean) => void;
+  useTools: boolean;
+  onToggleTools: (enabled: boolean) => void;
   promptKey: string;
   onChangePrompt: (key: string) => void;
   availablePrompts: PromptOption[];
@@ -26,6 +28,8 @@ export function ChatWindow({
   onClearChat,
   useRag,
   onToggleRag,
+  useTools,
+  onToggleTools,
   promptKey,
   onChangePrompt,
   availablePrompts
@@ -59,6 +63,19 @@ export function ChatWindow({
                   type="checkbox"
                   checked={useRag}
                   onChange={(e) => onToggleRag(e.target.checked)}
+                />
+                <span className="toggle-slider"></span>
+              </div>
+            </label>
+          </div>
+          <div className="tools-toggle">
+            <label className="toggle-label">
+              <span className="toggle-text">Tools</span>
+              <div className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={useTools}
+                  onChange={(e) => onToggleTools(e.target.checked)}
                 />
                 <span className="toggle-slider"></span>
               </div>
@@ -105,6 +122,9 @@ export function ChatWindow({
             <div className="settings-status">
               <p className="rag-status">
                 RAG: <strong>{useRag ? 'ON' : 'OFF'}</strong>
+              </p>
+              <p className="tools-status">
+                Tools: <strong>{useTools ? 'ON' : 'OFF'}</strong>
               </p>
               <p className="prompt-status">
                 Prompt: <strong>{currentPrompt?.name || 'Default'}</strong>

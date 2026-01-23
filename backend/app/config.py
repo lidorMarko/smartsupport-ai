@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     chroma_persist_directory: str = "./data/chroma_db"
     collection_name: str = "documents"
 
+    # Email Settings (Gmail SMTP)
+    smtp_email: str = ""  # Your Gmail address
+    smtp_password: str = ""  # Gmail App Password
+
     # App settings
     debug: bool = True
 

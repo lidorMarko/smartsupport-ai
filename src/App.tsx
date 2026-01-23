@@ -9,6 +9,8 @@ function App() {
     error,
     useRag,
     setUseRag,
+    useTools,
+    setUseTools,
     promptKey,
     setPromptKey,
     availablePrompts,
@@ -28,6 +30,8 @@ function App() {
         onClearChat={clearChat}
         useRag={useRag}
         onToggleRag={setUseRag}
+        useTools={useTools}
+        onToggleTools={setUseTools}
         promptKey={promptKey}
         onChangePrompt={setPromptKey}
         availablePrompts={availablePrompts}

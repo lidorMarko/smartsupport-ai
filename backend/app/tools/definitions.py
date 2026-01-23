@@ -3,7 +3,8 @@ Tool definitions for OpenAI function calling.
 These define WHAT tools are available to the agent.
 """
 
-TOOLS = [
+# Core tools that are always available (when tools are enabled)
+CORE_TOOLS = [
     {
         "type": "function",
         "function": {
@@ -22,6 +23,23 @@ TOOLS = [
                     }
                 },
                 "required": ["reason"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "Get current weather information for a city in Israel. Use this when customers ask about weather, or to provide context about water usage during hot/cold days.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "city": {
+                        "type": "string",
+                        "description": "City name in Israel (e.g., 'תל אביב', 'ירושלים', 'חיפה', 'Tel Aviv', 'Jerusalem', 'Haifa')"
+                    }
+                },
+                "required": ["city"]
             }
         }
     },
@@ -52,7 +70,34 @@ TOOLS = [
     }
 ]
 
+# RAG tool - only included when RAG is enabled
+RAG_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "search_knowledge_base",
+        "description": "Search the company knowledge base for information about Mei Avivim water company services, billing, procedures, policies, and FAQs. Use this when the customer asks questions about company services, billing, how things work, or needs factual information that might be in company documents.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The search query - what information to look for (e.g., 'תעריפי מים', 'איך לשלם חשבון', 'שעות פעילות')"
+                }
+            },
+            "required": ["query"]
+        }
+    }
+}
 
-def get_tools():
-    """Return all available tools for the agent."""
-    return TOOLS
+
+def get_tools(include_rag: bool = True) -> list:
+    """
+    Return available tools for the agent.
+
+    Args:
+        include_rag: Whether to include the knowledge base search tool
+    """
+    tools = CORE_TOOLS.copy()
+    if include_rag:
+        tools.append(RAG_TOOL)
+    return tools

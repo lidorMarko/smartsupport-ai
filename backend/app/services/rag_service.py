@@ -14,22 +14,27 @@ from app.config import get_settings
 
 
 class RAGService:
+    #Embeddings
+    #Chunking
+    #Persistence
+    #Retrieval config
     def __init__(self):
         settings = get_settings()
         self.embeddings = OpenAIEmbeddings(
             openai_api_key=settings.openai_api_key,
-            model=settings.openai_embedding_model,
+            model=settings.openai_embedding_model, #embedding model choice must stay consistent across indexing and querying. If you change the model later, old vectors become invalid.
         )
         self.persist_directory = settings.chroma_persist_directory
-        self.faiss_index_path = os.path.join(self.persist_directory, "faiss_index")
+        self.faiss_index_path = os.path.join(self.persist_directory, "faiss_index") #where the FAISS index will be saved or loaded from
         self.chunk_size = settings.chunk_size
-        self.chunk_overlap = settings.chunk_overlap
-        self.top_k = settings.retrieval_top_k
-
+        self.chunk_overlap = settings.chunk_overlap #Overlap is important so context does not get cut in unnatural places, especially for explanations, definitions, or code blocks.
+        self.top_k = settings.retrieval_top_k #This controls how many chunks are retrieved during similarity search.
+ 
+        #tries to split on natural boundaries first such as paragraphs, then sentences, then characters
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
-            length_function=len,
+            length_function=len, #chunk size is measured in characters, not tokens
         )
 
         self.vectorstore: FAISS | None = self._load_vectorstore()

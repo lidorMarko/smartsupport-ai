@@ -65,7 +65,7 @@ class OpenAIService:
         self,
         messages: list[ChatMessage],
         system_prompt: str | None = None,
-        context: str | None = None,
+        include_rag: bool = True,
     ) -> dict:
         """
         Send messages to OpenAI with function calling support.
@@ -76,37 +76,74 @@ class OpenAIService:
         2. If LLM wants to call a tool, execute it
         3. Send tool result back to LLM
         4. Repeat until LLM gives final response
+
+        Args:
+            messages: List of chat messages
+            system_prompt: Optional system prompt to set behavior
+            include_rag: Whether to include the knowledge base search tool
         """
         openai_messages = []
 
-        # Add system prompt with tool instructions
+        # Add system prompt with intent classification and tool instructions
         base_prompt = system_prompt or "You are SmartSupport AI, a helpful assistant."
         tool_instructions = """
 
-## Available Actions:
-You have access to tools to help customers. When a customer needs a technician:
-1. Use schedule_technician to book the appointment
-2. After scheduling, ask the customer for their email address
-3. Once they provide email, use send_confirmation_email to send details
+## Your Role
+You are an intelligent customer service agent for Mei Avivim (מי אביבים) water company.
+You must first understand the customer's INTENT before taking any action.
 
-Always confirm actions with the customer and be helpful."""
+## Step 1: Intent Classification
+Before responding, classify the customer's intent into one of these categories:
+
+| Intent | Description | Action |
+|--------|-------------|--------|
+| GREETING | Hello, hi, שלום, היי | Respond warmly, no tools needed |
+| TECHNICIAN_REQUEST | Reports leak, no water, meter problem, needs טכנאי | Use `schedule_technician` |
+| INFORMATION_REQUEST | Questions about services, billing, procedures, prices | Use `search_knowledge_base` |
+| WEATHER_QUERY | Asks about weather, מזג אוויר | Use `get_weather` |
+| EMAIL_PROVIDED | Customer provides email after scheduling | Use `send_confirmation_email` |
+| GENERAL_CHAT | Small talk, thanks, goodbye | Respond naturally, no tools needed |
+| UNCLEAR | Cannot determine intent | Ask clarifying question |
+
+## Step 2: Execute Based on Intent
+
+### For TECHNICIAN_REQUEST:
+Trigger words: נזילה, נזילת מים, בעיה במונה, לחץ מים נמוך, אין מים, בעיה בצינור, טכנאי, צריך טכנאי
+1. Acknowledge the issue
+2. Use `schedule_technician` with the reason
+3. After success, ask for email: "האם תרצה לקבל אישור במייל? אם כן, אנא שלח לי את כתובת האימייל שלך"
+
+### For INFORMATION_REQUEST:
+Trigger: Questions about company services, billing, how to pay, tariffs, opening hours, procedures
+1. Use `search_knowledge_base` with relevant query
+2. Answer based on the results
+3. If no results found, apologize and suggest contacting support
+
+### For WEATHER_QUERY:
+1. Use `get_weather` with the city name
+2. Include the water-related tip from the response
+
+### For EMAIL_PROVIDED (after technician scheduling):
+1. Use `send_confirmation_email` with:
+   - The provided email
+   - Subject: "אישור תור לטכנאי - מי אביבים"
+   - Details: Include confirmation number, date, time from previous scheduling
+
+## Important Rules:
+- ALWAYS classify intent first before acting
+- Use tools when appropriate - don't just describe what you would do
+- Speak in Hebrew (עברית) when the customer writes in Hebrew
+- Be concise and helpful
+- If the knowledge base has no relevant info, say so honestly"""
 
         openai_messages.append({"role": "system", "content": base_prompt + tool_instructions})
-
-        # Add RAG context if available
-        if context:
-            openai_messages.append(
-                {
-                    "role": "system",
-                    "content": f"Use the following context to answer the user's question:\n\n{context}",
-                }
-            )
 
         # Add conversation messages
         for msg in messages:
             openai_messages.append({"role": msg.role.value, "content": msg.content})
 
-        tools = get_tools()
+        # Get tools - conditionally include RAG tool based on setting
+        tools = get_tools(include_rag=include_rag)
         tool_calls_made = []
 
         # Agent loop - keep going until we get a final response

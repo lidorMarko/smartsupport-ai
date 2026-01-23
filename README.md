@@ -1,13 +1,59 @@
 # SmartSupport AI
 
-A chatbot application for practicing AI agent fundamentals including RAG (Retrieval-Augmented Generation), GPT integration, and prompt engineering.
+A chatbot application for practicing AI agent fundamentals including RAG (Retrieval-Augmented Generation), GPT integration, function calling (tools), and prompt engineering.
 
 ## Features
 
 - **Chat Interface** - React-based chat UI with real-time messaging
-- **RAG Support** - Load documents and use them as context for responses
-- **Prompt Engineering** - Switch between different system prompts to see how prompt quality affects responses
-- **Toggle RAG** - Compare responses with and without document context
+- **AI Agent with Tools** - Function calling capabilities for real actions
+- **RAG as a Tool** - Agent decides when to search the knowledge base
+- **Intent Classification** - Agent classifies user intent before acting
+- **Prompt Engineering** - Switch between different system prompts to compare quality
+- **Toggle Controls** - Enable/disable RAG and Tools independently
+
+## Agent Tools
+
+| Tool | Description |
+|------|-------------|
+| `schedule_technician` | Schedule a technician visit for water issues |
+| `send_confirmation_email` | Send email confirmation to customers |
+| `get_weather` | Fetch real-time weather from Open-Meteo API |
+| `search_knowledge_base` | Search company documents (RAG) |
+
+## Architecture
+
+```
+User Message
+     │
+     ▼
+┌─────────────────────────────────┐
+│     Intent Classification       │
+│  (GREETING, TECHNICIAN_REQUEST, │
+│   INFORMATION_REQUEST, etc.)    │
+└─────────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────────┐
+│      Tool Selection             │
+│  Agent decides which tool(s)    │
+│  to use based on intent         │
+└─────────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────────┐
+│      Tool Execution             │
+│  - schedule_technician          │
+│  - search_knowledge_base        │
+│  - get_weather                  │
+│  - send_confirmation_email      │
+└─────────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────────┐
+│      Response Generation        │
+│  Final response to user         │
+└─────────────────────────────────┘
+```
 
 ## Tech Stack
 
@@ -18,7 +64,7 @@ A chatbot application for practicing AI agent fundamentals including RAG (Retrie
 
 **Backend:**
 - FastAPI (Python)
-- OpenAI API (GPT-4)
+- OpenAI API (GPT-4 with function calling)
 - LangChain
 - FAISS (vector store)
 
@@ -60,6 +106,15 @@ npm run dev
 2. Start the frontend dev server (port 5173)
 3. Open http://localhost:5173
 
+### Toggle Controls
+
+| Toggle | Effect |
+|--------|--------|
+| **Tools ON** | Agent can use function calling (schedule, email, weather, search) |
+| **Tools OFF** | Simple chat without tools |
+| **RAG ON** | Agent has access to `search_knowledge_base` tool |
+| **RAG OFF** | Agent cannot search the knowledge base |
+
 ### Loading Documents for RAG
 
 ```bash
@@ -85,7 +140,7 @@ Three prompts available for comparing prompt engineering quality:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/chat` | Send message and get AI response |
+| POST | `/api/chat` | Send message and get AI response (with optional tools) |
 | GET | `/api/prompts` | Get available system prompts |
 | POST | `/api/documents/upload` | Upload a document |
 | POST | `/api/documents/load-directory` | Load documents from directory |
@@ -117,6 +172,35 @@ smartsupport-ai/
 │       ├── services/
 │       │   ├── openai_service.py
 │       │   └── rag_service.py
+│       ├── tools/
+│       │   ├── definitions.py   # Tool schemas for OpenAI
+│       │   └── handlers.py      # Tool implementations
 │       └── prompts.py
 └── documents/              # RAG documents
+```
+
+## Example Interactions
+
+**Technician Request:**
+```
+User: יש לי נזילה בבית
+Agent: [Classifies as TECHNICIAN_REQUEST]
+       [Calls schedule_technician]
+       "קבעתי לך טכנאי לתאריך... האם תרצה אישור במייל?"
+```
+
+**Information Request:**
+```
+User: מה התעריפים למים?
+Agent: [Classifies as INFORMATION_REQUEST]
+       [Calls search_knowledge_base]
+       [Returns answer based on documents]
+```
+
+**Weather Query:**
+```
+User: מה מזג האוויר בתל אביב?
+Agent: [Classifies as WEATHER_QUERY]
+       [Calls get_weather]
+       "מזג האוויר בתל אביב: 25°C, שמיים בהירים..."
 ```
